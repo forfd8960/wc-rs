@@ -12,6 +12,8 @@ mod count_chars;
 mod count_lines;
 mod count_words;
 
+mod new_counter;
+
 #[derive(Debug, PartialEq)]
 pub struct FileStats {
     pub lines: usize,
@@ -31,6 +33,11 @@ pub enum CountType {
 
 pub trait Count {
     fn count(&self) -> Vec<(String, usize)>;
+    fn count_type(&self) -> CountType;
+}
+
+pub trait CountV1 {
+    fn count(&self) -> HashMap<String, usize>;
     fn count_type(&self) -> CountType;
 }
 
