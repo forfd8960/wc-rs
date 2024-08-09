@@ -1,15 +1,11 @@
 use clap::Parser;
-use wc_rs::Options;
+use wc_rs::{Options, OptionsHandler};
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let opts = Options::parse();
     println!("{:?}", opts);
-}
 
-fn handle_options(opts: Options) {
-    println!("{}", opts.longest);
-    println!("{}", opts.lines);
-    println!("{}", opts.count);
-    println!("{}", opts.chars);
-    println!("{}", opts.words);
+    let mut opt_handler = OptionsHandler::new(opts);
+    opt_handler.handle_options()?;
+    Ok(())
 }

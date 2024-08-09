@@ -1,6 +1,9 @@
 use anyhow::Result;
 use clap::Parser;
-use std::fs;
+use count_chars::CountChars;
+use count_lines::CountLines;
+use count_words::CountWords;
+use std::{collections::HashMap, fs};
 
 mod count_bytes;
 mod count_chars;
@@ -13,11 +16,20 @@ pub struct FileStats {
     pub words: usize,
     pub bytes: usize,
     pub chars: usize,
-    pub content: String,
+    pub file: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum CountType {
+    Lines,
+    Words,
+    Bytes,
+    Chars,
 }
 
 pub trait Count {
     fn count(&self) -> Vec<(String, usize)>;
+    fn count_type(&self) -> CountType;
 }
 
 #[derive(Debug, Parser)]
@@ -42,6 +54,9 @@ pub struct Options {
     /// The number of words in each input file is written to the standard output.
     #[arg(short = 'w', long)]
     pub words: bool,
+
+    #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+    pub files: Vec<String>,
 }
 
 // read_files read file content by file name, return file_name -> contnent vector
@@ -53,4 +68,141 @@ pub fn read_files(fiels: Vec<String>) -> Result<Vec<(String, String)>> {
     }
 
     Ok(files)
+}
+
+pub struct OptionsHandler {
+    options: Options,
+    counters: Vec<Box<dyn Count>>,
+}
+
+impl OptionsHandler {
+    pub fn new(options: Options) -> Self {
+        Self {
+            options,
+            counters: vec![],
+        }
+    }
+
+    pub fn handle_options(&mut self) -> anyhow::Result<()> {
+        if self.options.files.len() == 0 {
+            return Ok(());
+        }
+
+        let res = self.count_files()?;
+        for (file, stats) in res.iter() {
+            println!(
+                "{}: {} {} {} {}",
+                file, stats.lines, stats.words, stats.bytes, stats.chars
+            );
+        }
+        Ok(())
+    }
+
+    fn count_stdin(&self) -> Result<Vec<FileStats>> {
+        Ok(vec![])
+    }
+
+    fn count_files(&mut self) -> Result<HashMap<String, FileStats>> {
+        self.build_counters()?;
+
+        let mut file_stats: HashMap<String, FileStats> = HashMap::new();
+
+        for counter in self.counters.iter() {
+            let stats = counter.count();
+            match counter.count_type() {
+                CountType::Lines => {
+                    for (file, count) in stats.iter() {
+                        let f = file.clone();
+                        file_stats
+                            .entry(f)
+                            .or_insert(FileStats {
+                                lines: 0,
+                                words: 0,
+                                bytes: 0,
+                                chars: 0,
+                                file: file.clone(),
+                            })
+                            .lines += count;
+
+                        println!("{}: {}", file, count);
+                    }
+                }
+                CountType::Words => {
+                    for (file, count) in stats.iter() {
+                        let f = file.clone();
+                        file_stats
+                            .entry(f)
+                            .or_insert(FileStats {
+                                lines: 0,
+                                words: 0,
+                                bytes: 0,
+                                chars: 0,
+                                file: file.clone(),
+                            })
+                            .words += count;
+
+                        println!("{}: {}", file, count);
+                    }
+                }
+                CountType::Bytes => {
+                    for (file, count) in stats.iter() {
+                        let f = file.clone();
+                        file_stats
+                            .entry(f)
+                            .or_insert(FileStats {
+                                lines: 0,
+                                words: 0,
+                                bytes: 0,
+                                chars: 0,
+                                file: file.clone(),
+                            })
+                            .bytes += count;
+
+                        println!("{}: {}", file, count);
+                    }
+                }
+                CountType::Chars => {
+                    for (file, count) in stats.iter() {
+                        let f = file.clone();
+                        file_stats
+                            .entry(f)
+                            .or_insert(FileStats {
+                                lines: 0,
+                                words: 0,
+                                bytes: 0,
+                                chars: 0,
+                                file: file.clone(),
+                            })
+                            .chars += count;
+
+                        println!("{}: {}", file, count);
+                    }
+                }
+            }
+        }
+
+        Ok(file_stats)
+    }
+
+    fn build_counters(&mut self) -> Result<()> {
+        let files = self.options.files.clone();
+        let files_content = read_files(files)?;
+
+        let lines_counter = CountLines::new(files_content.clone());
+        if self.options.lines {
+            self.counters.push(Box::new(lines_counter));
+        }
+
+        let words_counter = CountWords::new(files_content.clone());
+        if self.options.words {
+            self.counters.push(Box::new(words_counter));
+        }
+
+        let chars_counter = CountChars::new(files_content.clone());
+        if self.options.chars {
+            self.counters.push(Box::new(chars_counter));
+        }
+
+        Ok(())
+    }
 }

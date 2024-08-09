@@ -1,4 +1,4 @@
-use crate::Count;
+use crate::{Count, CountType};
 
 pub struct CountWords {
     pub files: Vec<(String, String)>,
@@ -11,6 +11,10 @@ impl CountWords {
 }
 
 impl Count for CountWords {
+    fn count_type(&self) -> CountType {
+        CountType::Words
+    }
+
     fn count(&self) -> Vec<(String, usize)> {
         let mut stats: Vec<(String, usize)> = Vec::new();
         for (file, content) in self.files.iter() {
