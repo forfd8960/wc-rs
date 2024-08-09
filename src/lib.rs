@@ -1,9 +1,11 @@
 use anyhow::Result;
 use clap::Parser;
+use std::{collections::HashMap, fs};
+
+use count_bytes::CountBytes;
 use count_chars::CountChars;
 use count_lines::CountLines;
 use count_words::CountWords;
-use std::{collections::HashMap, fs};
 
 mod count_bytes;
 mod count_chars;
@@ -70,6 +72,18 @@ pub fn read_files(fiels: Vec<String>) -> Result<Vec<(String, String)>> {
     Ok(files)
 }
 
+impl FileStats {
+    pub fn new(file: String) -> Self {
+        Self {
+            file,
+            lines: 0,
+            words: 0,
+            bytes: 0,
+            chars: 0,
+        }
+    }
+}
+
 pub struct OptionsHandler {
     options: Options,
     counters: Vec<Box<dyn Count>>,
@@ -115,13 +129,7 @@ impl OptionsHandler {
                         let f = file.clone();
                         file_stats
                             .entry(f)
-                            .or_insert(FileStats {
-                                lines: 0,
-                                words: 0,
-                                bytes: 0,
-                                chars: 0,
-                                file: file.clone(),
-                            })
+                            .or_insert(FileStats::new(file.clone()))
                             .lines += count;
 
                         println!("{}: {}", file, count);
@@ -132,31 +140,8 @@ impl OptionsHandler {
                         let f = file.clone();
                         file_stats
                             .entry(f)
-                            .or_insert(FileStats {
-                                lines: 0,
-                                words: 0,
-                                bytes: 0,
-                                chars: 0,
-                                file: file.clone(),
-                            })
+                            .or_insert(FileStats::new(file.clone()))
                             .words += count;
-
-                        println!("{}: {}", file, count);
-                    }
-                }
-                CountType::Bytes => {
-                    for (file, count) in stats.iter() {
-                        let f = file.clone();
-                        file_stats
-                            .entry(f)
-                            .or_insert(FileStats {
-                                lines: 0,
-                                words: 0,
-                                bytes: 0,
-                                chars: 0,
-                                file: file.clone(),
-                            })
-                            .bytes += count;
 
                         println!("{}: {}", file, count);
                     }
@@ -166,14 +151,19 @@ impl OptionsHandler {
                         let f = file.clone();
                         file_stats
                             .entry(f)
-                            .or_insert(FileStats {
-                                lines: 0,
-                                words: 0,
-                                bytes: 0,
-                                chars: 0,
-                                file: file.clone(),
-                            })
+                            .or_insert(FileStats::new(file.clone()))
                             .chars += count;
+
+                        println!("{}: {}", file, count);
+                    }
+                }
+                CountType::Bytes => {
+                    for (file, count) in stats.iter() {
+                        let f = file.clone();
+                        file_stats
+                            .entry(f)
+                            .or_insert(FileStats::new(file.clone()))
+                            .bytes += count;
 
                         println!("{}: {}", file, count);
                     }
@@ -201,6 +191,11 @@ impl OptionsHandler {
         let chars_counter = CountChars::new(files_content.clone());
         if self.options.chars {
             self.counters.push(Box::new(chars_counter));
+        }
+
+        let bytes_counter = CountBytes::new(files_content.clone());
+        if self.options.count {
+            self.counters.push(Box::new(bytes_counter));
         }
 
         Ok(())
