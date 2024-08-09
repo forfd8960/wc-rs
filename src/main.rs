@@ -5,7 +5,7 @@ fn main() -> anyhow::Result<()> {
     let opts = Options::parse();
     println!("{:?}", opts);
 
-    let mut opt_handler = OptionsHandler::new(opts);
+    let opt_handler = OptionsHandler::new(opts);
     opt_handler.handle_options()?;
     Ok(())
 }
