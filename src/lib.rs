@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
-use new_counter::count_files;
-use std::fs;
+use new_counter::{count_files, count_from_stdin};
+use std::{fs, io::BufRead};
 
 mod new_counter;
 
@@ -75,6 +75,12 @@ impl OptionsHandler {
 
     pub fn handle_options(&self) -> anyhow::Result<()> {
         if self.options.files.len() == 0 {
+            let file_stat = self.count_stdin()?;
+            println!(
+                "{}: {} {} {} {}",
+                file_stat.file, file_stat.lines, file_stat.words, file_stat.bytes, file_stat.chars
+            );
+
             return Ok(());
         }
 
@@ -88,7 +94,17 @@ impl OptionsHandler {
         Ok(())
     }
 
-    fn count_stdin(&self) -> Result<Vec<FileStats>> {
-        Ok(vec![])
+    fn count_stdin(&self) -> Result<FileStats> {
+        let stdin = std::io::stdin();
+        let mut lines = vec![];
+        for line in stdin.lock().lines() {
+            if let Ok(l) = line {
+                lines.push(l);
+            } else {
+                break;
+            }
+        }
+
+        count_from_stdin(&self.options, lines)
     }
 }
